@@ -1,11 +1,15 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Base64 Checklist Renderer</title>
+    <title>Checkmate</title>
     <style>
         /* Hide bullet points and show only checkboxes */
+        ul {
+            padding: 0;
+        }
         ul#checklist {
             list-style-type: none;
         }
@@ -55,20 +59,20 @@
     </style>
 </head>
 <body>
-    <h1>Checklist</h1>
+    <h1>Checkmate</h1>
     <ul id="checklist">
         <!-- Checklist items will be added here -->
     </ul>
 
     <button class="submit-button tooltip" id="submitButton" disabled title="Complete checklist to proceed">Submit</button>
-    <br> <!-- New line before the Edit Checklist link -->
-    <br> <!-- New line before the Edit Checklist link -->
-    <a href="#" id="editButton">Edit Checklist</a>
+    <br>
+    <br>
+    <a href="#" id="editButton">Edit</a>
 
     <div class="collapsible-form" id="editForm">
         <form>
             <div class="form-input">
-                <label for="editChecklist">Checklist Items (comma-separated):</label>
+                <label for="editChecklist">Checklist items (comma-separated):</label>
                 <input type="text" id="editChecklist" placeholder="Item 1, Item 2, Item 3">
             </div>
             <div class="form-input">
@@ -179,7 +183,7 @@
                             redirect_url: updatedRedirect,
                         };
                         const updatedBase64 = btoa(JSON.stringify(updatedJson));
-                        window.location.href = updatedBase64;
+                        window.open(window.location.href.split('#')[0] + "#" + updatedBase64, "_blank");
                     });
 
                     // Check initial checklist status

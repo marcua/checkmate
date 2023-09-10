@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Base64 Checklist Renderer</title>
+    <style>
+        /* Hide bullet points and show only checkboxes */
+        ul#checklist {
+            list-style-type: none;
+        }
+
+        /* Tooltip CSS */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 5px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Collapsible form CSS */
+        .collapsible-form {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .form-input {
+            margin: 5px 0;
+        }
+
+        /* Style for clickable labels */
+        label.checkbox-label {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Checklist</h1>
+    <ul id="checklist">
+        <!-- Checklist items will be added here -->
+    </ul>
+
+    <button class="submit-button tooltip" id="submitButton" disabled title="Complete checklist to proceed">Submit</button>
+    <br> <!-- New line before the Edit Checklist link -->
+    <br> <!-- New line before the Edit Checklist link -->
+    <a href="#" id="editButton">Edit Checklist</a>
+
+    <div class="collapsible-form" id="editForm">
+        <form>
+            <div class="form-input">
+                <label for="editChecklist">Checklist Items (comma-separated):</label>
+                <input type="text" id="editChecklist" placeholder="Item 1, Item 2, Item 3">
+            </div>
+            <div class="form-input">
+                <label for="editRedirect">Redirect URL:</label>
+                <input type="text" id="editRedirect" placeholder="http://example.com">
+            </div>
+            <button type="button" id="updateButton">Update</button>
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const checklist = document.getElementById("checklist");
+            const editButton = document.getElementById("editButton");
+            const editForm = document.getElementById("editForm");
+            const editChecklistInput = document.getElementById("editChecklist");
+            const editRedirectInput = document.getElementById("editRedirect");
+            const updateButton = document.getElementById("updateButton");
+            const submitButton = document.getElementById("submitButton");
+            let json; // Declare the json variable
+
+            // Function to check if all checklist items are checked
+            function areAllItemsChecked() {
+                const checkboxes = checklist.querySelectorAll('input[type="checkbox"]');
+                for (const checkbox of checkboxes) {
+                    if (!checkbox.checked) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            // Function to update the tooltip text based on the button's disabled state
+            function updateTooltip() {
+                if (submitButton.disabled) {
+                    submitButton.title = "Complete checklist to proceed";
+                } else {
+                    submitButton.removeAttribute("title");
+                }
+            }
+
+            // Get the base64-encoded string from the URL anchor
+            const url = window.location.href;
+            const anchorIndex = url.indexOf("#");
+            let decodedString = ""; // Default value
+
+            if (anchorIndex !== -1) {
+                const base64Encoded = url.substr(anchorIndex + 1);
+
+                // Decode the base64 string
+                decodedString = atob(base64Encoded);
+            } else {
+                // Set a default JSON value with an empty checklist and an empty redirect URL
+                decodedString = JSON.stringify({ checklist: [], redirect_url: "" });
+            }
+
+            try {
+                // Parse the JSON object
+                json = JSON.parse(decodedString); // Assign the parsed JSON to the variable
+
+                if (json && Array.isArray(json.checklist)) {
+                    // Render the checklist
+                    json.checklist.forEach(item => {
+                        if (item.trim() !== "") {
+                            const listItem = document.createElement("li");
+                            const checkbox = document.createElement("input");
+                            checkbox.type = "checkbox";
+                            listItem.appendChild(checkbox);
+
+                            // Create a label for the clickable item
+                            const label = document.createElement("label");
+                            label.classList.add("checkbox-label");
+                            label.textContent = item.trim();
+                            label.htmlFor = checkbox.id;
+
+                            listItem.appendChild(label);
+                            checklist.appendChild(listItem);
+
+                            // Add event listener to checkboxes
+                            checkbox.addEventListener("change", function () {
+                                submitButton.disabled = !areAllItemsChecked();
+                                updateTooltip(); // Update the tooltip when the button's state changes
+                            });
+
+                            // Add event listener to labels (make labels clickable)
+                            label.addEventListener("click", function () {
+                                checkbox.checked = !checkbox.checked;
+                                submitButton.disabled = !areAllItemsChecked();
+                                updateTooltip(); // Update the tooltip when the button's state changes
+                            });
+                        }
+                    });
+
+                    // Handle "Edit Checklist" button click
+                    editButton.addEventListener("click", function (e) {
+                        e.preventDefault();
+                        editChecklistInput.value = json.checklist.join(", ");
+                        editRedirectInput.value = json.redirect_url || "";
+                        editForm.style.display = "block"; // Show the form
+                    });
+
+                    // Handle "Update" button click
+                    updateButton.addEventListener("click", function () {
+                        const updatedChecklist = editChecklistInput.value.split(",").map(item => item.trim());
+                        const updatedRedirect = editRedirectInput.value.trim();
+                        const updatedJson = {
+                            checklist: updatedChecklist,
+                            redirect_url: updatedRedirect,
+                        };
+                        const updatedBase64 = btoa(JSON.stringify(updatedJson));
+                        window.location.href = updatedBase64;
+                    });
+
+                    // Check initial checklist status
+                    submitButton.disabled = !areAllItemsChecked();
+                    updateTooltip(); // Initialize the tooltip
+                } else {
+                    console.error("Invalid JSON format. Expecting { 'checklist': ['item1', 'item2'], 'redirect_url': 'http://example.com' }");
+                }
+            } catch (error) {
+                console.error("Error parsing JSON:", error);
+            }
+
+            // Handle "Submit" button click
+            submitButton.addEventListener("click", function () {
+                const redirectUrl = json.redirect_url;
+                if (redirectUrl) {
+                    // Navigate to the new URL
+                    window.location.href = redirectUrl;
+                }
+            });
+        });
+    </script>
+</body>
+</html>
